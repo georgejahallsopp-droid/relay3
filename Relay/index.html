@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Relay</title>
+<style>
+  :root{
+    --bg:#F2F4F3; --surface:#FFFFFF; --ink:#18201F; --muted:#5E6B69; --line:#D5DCDA;
+    --accent:#1F6F5C; --accent-ink:#FFFFFF; --wash:#E3F1EC; --danger:#B3261E;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#121716; --surface:#1A2120; --ink:#E7ECEA; --muted:#97A3A0; --line:#2C3634;
+      --accent:#5FBFA3; --accent-ink:#0E1513; --wash:#1D2E29; --danger:#F2867D;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  }
+  [hidden]{display:none !important}
+  button,input{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .wordmark{font-weight:700;letter-spacing:-0.03em;font-size:1.375rem}
+
+  .auth{min-height:100vh;display:grid;place-items:center;padding:24px}
+  .auth-panel{width:100%;max-width:380px}
+  .auth-panel .wordmark{font-size:3rem;line-height:1;margin:0 0 8px}
+  .auth-panel .lede{color:var(--muted);margin:0 0 32px}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--line);border-radius:10px;padding:3px;margin-bottom:24px}
+  .seg button{border:0;background:transparent;padding:8px;border-radius:8px;cursor:pointer;font-weight:500;color:var(--muted)}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  label{display:block;font-size:.875rem;font-weight:500;margin:0 0 6px}
+  .field{margin-bottom:16px}
+  input[type=email],input[type=password],input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+  input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--wash)}
+  .btn{border:0;border-radius:8px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+  .btn:disabled{opacity:.6;cursor:default}
+  .btn.block{width:100%}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+  .link{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:.875rem;text-decoration:underline;text-underline-offset:2px}
+  .msg{font-size:.875rem;margin:12px 0 0;min-height:1.3em}
+  .msg.error{color:var(--danger)}
+  .msg.ok{color:var(--accent)}
+  .row-between{display:flex;justify-content:space-between;align-items:center;gap:12px}
+
+  .topbar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+  .topbar-inner{max-width:780px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .who{display:flex;align-items:center;gap:12px;min-width:0}
+  .who span{color:var(--muted);font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  main{max-width:780px;margin:0 auto;padding:28px 20px 80px}
+
+  .dropzone{border:1.5px dashed var(--line);border-radius:14px;padding:36px 20px;text-align:center;background:var(--surface);transition:border-color .15s, background .15s}
+  .dropzone.over{border-color:var(--accent);background:var(--wash)}
+  .dropzone h2{margin:0 0 4px;font-size:1.25rem;font-weight:600;letter-spacing:-0.01em}
+  .dropzone p{margin:0 0 18px;color:var(--muted)}
+  .dropzone .actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+  .meter{margin-top:14px;font-size:.8125rem;color:var(--muted)}
+  .hint{margin:12px 0 0;font-size:.875rem;color:var(--muted)}
+  .hint strong{color:var(--ink);font-weight:600;user-select:all}
+
+  .queue{margin-top:20px;display:grid;gap:8px}
+  .q{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .q-top{display:flex;justify-content:space-between;gap:12px;font-size:.875rem}
+  .q-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .q-stat{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .bar{height:4px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+  .q.failed .bar i{background:var(--danger)}
+  .q.failed .q-stat{color:var(--danger)}
+  .notice{font-size:.875rem;color:var(--danger);margin:12px 0 0}
+
+  .files-head{display:flex;align-items:baseline;justify-content:space-between;margin:40px 0 12px;gap:12px}
+  .files-head h2{margin:0;font-size:1.125rem;font-weight:600}
+  .files-head span{color:var(--muted);font-size:.875rem}
+  .files{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .file{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+  .file:first-child{border-top:0}
+  .tile{width:44px;height:44px;border-radius:8px;background:var(--wash);color:var(--accent);display:grid;place-items:center;font-size:.6875rem;font-weight:700}
+  .meta{min-width:0}
+  .meta .name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .meta .sub{color:var(--muted);font-size:.8125rem}
+  .file-actions{display:flex;gap:6px}
+  .icon-btn{border:1px solid var(--line);background:transparent;border-radius:8px;width:36px;height:36px;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+  .icon-btn:hover{background:var(--wash)}
+  .icon-btn:disabled{opacity:.5;cursor:default}
+  .icon-btn.danger:hover{color:var(--danger)}
+  .icon-btn svg{width:18px;height:18px}
+  .empty{padding:40px 20px;text-align:center;color:var(--muted)}
+
+  .sheet{position:fixed;inset:0;z-index:50;background:color-mix(in srgb, var(--accent) 92%, transparent);color:var(--accent-ink);display:grid;place-items:center;text-align:center;padding:24px;pointer-events:none}
+  .sheet strong{display:block;font-size:clamp(2.5rem,9vw,5.5rem);font-weight:700;letter-spacing:-0.04em;line-height:1}
+  .sheet span{display:block;margin-top:14px;font-size:1.0625rem;opacity:.85}
+
+
+  @media (max-width:520px){
+    .file{grid-template-columns:40px 1fr}
+    .file-actions{grid-column:2}
+    .auth-panel .wordmark{font-size:2.5rem}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+
+<section class="auth" id="authView" hidden>
+  <div class="auth-panel">
+    <h1 class="wordmark">Relay</h1>
+    <p class="lede">Send files from one device, pick them up on another.</p>
+
+    <div class="seg" role="group" aria-label="Account">
+      <button type="button" id="tabSignIn" aria-pressed="true">Sign in</button>
+      <button type="button" id="tabSignUp" aria-pressed="false">Create account</button>
+    </div>
+
+    <form id="authForm" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <div class="row-between">
+          <label for="password">Password</label>
+          <button type="button" class="link" id="forgotBtn">Forgot password?</button>
+        </div>
+        <input id="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="field" id="confirmField" hidden>
+        <label for="confirm">Confirm password</label>
+        <input id="confirm" type="password" autocomplete="new-password">
+      </div>
+      <button class="btn block" id="authSubmit" type="submit">Sign in</button>
+      <p class="msg" id="authMsg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+
+<div id="appView" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="wordmark">Relay</div>
+      <div class="who">
+        <span id="whoEmail"></span>
+        <button class="btn ghost" id="signOutBtn" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="dropzone" id="dropzone">
+      <h2>Drag files or folders here</h2>
+      <p>Any type, any size. They'll appear on every device signed in to this account.</p>
+      <div class="actions">
+        <button class="btn" type="button" id="pickFiles">Choose files</button>
+        <button class="btn ghost" type="button" id="pickFolder">Choose a folder</button>
+      </div>
+      <input type="file" id="fileInput" multiple hidden>
+      <input type="file" id="folderInput" webkitdirectory multiple hidden>
+      <div class="meter" id="meterText"></div>
+    </div>
+    <p class="notice" id="notice" hidden></p>
+    <p class="hint" id="hint" hidden></p>
+
+    <div class="queue" id="queue" aria-live="polite"></div>
+
+    <div class="files-head">
+      <h2>Your files</h2>
+      <span id="summary"></span>
+    </div>
+    <ul class="files" id="fileList"><li class="empty">Loading…</li></ul>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div>
+    <strong>Drop to upload</strong>
+    <span id="sheetSub">Files and folders both work.</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const MAX_PARALLEL = 3;
+const SPARE = 200 * 1024 * 1024;
+const OFFLINE = "Can't reach Relay. Make sure the Relay window is open on the computer and this device is on the same Wi-Fi.";
+const $ = (id) => document.getElementById(id);
+
+let user = null;
+let files = [];
+let free = -1;
+let version = -1;
+let watchId = 0;
+
+/* ---------------- Server calls ---------------- */
+async function api(path, opts = {}) {
+  let r;
+  try { r = await fetch(path, { credentials: "same-origin", cache: "no-store", ...opts }); }
+  catch { throw Object.assign(new Error(OFFLINE), { status: 0 }); }
+  let data = {};
+  try { data = await r.json(); } catch {}
+  if (!r.ok) throw Object.assign(new Error(data.error || "Something went wrong. Try again."), { status: r.status });
+  return data;
+}
+const postJson = (path, body) => api(path, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body || {}),
+});
+
+/* ---------------- Auth ---------------- */
+let mode = "signin";
+function setMode(m){
+  mode = m;
+  $("tabSignIn").setAttribute("aria-pressed", m === "signin");
+  $("tabSignUp").setAttribute("aria-pressed", m === "signup");
+  $("confirmField").hidden = m !== "signup";
+  $("forgotBtn").hidden = m !== "signin";
+  $("authSubmit").textContent = m === "signin" ? "Sign in" : "Create account";
+  $("password").autocomplete = m === "signin" ? "current-password" : "new-password";
+  showAuthMsg("");
+}
+$("tabSignIn").onclick = () => setMode("signin");
+$("tabSignUp").onclick = () => setMode("signup");
+
+function showAuthMsg(text, kind = "error"){
+  $("authMsg").textContent = text;
+  $("authMsg").className = "msg " + kind;
+}
+
+$("authForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  if (!email) { showAuthMsg("Enter your email address."); return; }
+  if (mode === "signup") {
+    if (password.length < 8) { showAuthMsg("Use a password with at least 8 characters."); return; }
+    if (password !== $("confirm").value) { showAuthMsg("Passwords don't match."); return; }
+  }
+  const btn = $("authSubmit");
+  btn.disabled = true;
+  try {
+    const d = await postJson(mode === "signin" ? "/api/login" : "/api/signup", { email, password });
+    $("authForm").reset();
+    setUser(d.email);
+  } catch (err) {
+    showAuthMsg(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("forgotBtn").onclick = () => {
+  showAuthMsg("On the computer running Relay, type reset in the Relay window and follow the steps.", "ok");
+};
+
+$("signOutBtn").onclick = async () => {
+  if (activeCount() && !confirm("Uploads are still running. Sign out and cancel them?")) return;
+  cancelAll();
+  try { await postJson("/api/logout"); } catch {}
+  setUser(null);
+};
+
+function setUser(email){
+  user = email;
+  $("authView").hidden = !!email;
+  $("appView").hidden = !email;
+  if (email) {
+    $("whoEmail").textContent = email;
+    version = -1;
+    watch();
+    loadInfo();
+  } else {
+    watchId++;
+    files = [];
+    $("queue").innerHTML = "";
+    $("fileList").innerHTML = '<li class="empty">Loading…</li>';
+    setMode("signin");
+  }
+}
+
+/* ---------------- Live file list ---------------- */
+async function watch(){
+  const my = ++watchId;
+  while (user && my === watchId) {
+    try {
+      const d = await api("/api/files?after=" + version);
+      if (my !== watchId) return;
+      version = d.version;
+      files = d.files;
+      free = d.free;
+      notice("");
+      renderFiles();
+    } catch (err) {
+      if (my !== watchId) return;
+      if (err.status === 401) { setUser(null); return; }
+      notice(OFFLINE);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && user) watch();
+});
+
+async function loadInfo(){
+  try {
+    const d = await api("/api/info");
+    const local = ["localhost", "127.0.0.1"].includes(location.hostname);
+    if (local && d.addresses.length) {
+      $("hint").innerHTML = "";
+      $("hint").append("On your other devices, connect to the same Wi-Fi and open ");
+      const s = document.createElement("strong");
+      s.textContent = d.addresses[0];
+      $("hint").append(s, " in a browser.");
+      $("hint").hidden = false;
+    }
+  } catch {}
+}
+
+/* ---------------- Helpers ---------------- */
+function fmtSize(b){
+  if (b < 1024) return b + " B";
+  const u = ["KB","MB","GB","TB"]; let i = -1;
+  do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
+  return (b < 10 ? b.toFixed(1) : Math.round(b)) + " " + u[i];
+}
+function fmtWhen(ms){
+  const d = new Date(ms);
+  const s = (Date.now() - ms) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s/60) + " min ago";
+  if (s < 86400) return Math.floor(s/3600) + " h ago";
+  return d.toLocaleDateString(undefined, { day:"numeric", month:"short", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+}
+function deviceLabel(){
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return "iPhone";
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "iPad";
+  if (/Android/.test(ua)) return "Android";
+  if (/Mac/.test(ua)) return "Mac";
+  if (/Windows/.test(ua)) return "Windows PC";
+  if (/CrOS/.test(ua)) return "Chromebook";
+  if (/Linux/.test(ua)) return "Linux";
+  return "a browser";
+}
+const ext = (name) => { const m = /\.([a-z0-9]{1,5})$/i.exec(name); return m ? m[1].toLowerCase() : "file"; };
+function notice(text){
+  $("notice").textContent = text;
+  $("notice").hidden = !text;
+}
+const ICONS = {
+  down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+};
+
+function renderFiles(){
+  const list = $("fileList");
+  list.innerHTML = "";
+  $("summary").textContent = files.length ? `${files.length} file${files.length === 1 ? "" : "s"}, ${fmtSize(files.reduce((a, f) => a + f.size, 0))}` : "";
+  $("meterText").textContent = free >= 0 ? `${fmtSize(free)} free on the Relay computer` : "";
+
+  if (!files.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No files yet. Drop something above and it'll show up on all your devices.";
+    list.append(li);
+    return;
+  }
+
+  for (const f of files) {
+    const li = document.createElement("li");
+    li.className = "file";
+
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.textContent = ext(f.name);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const name = document.createElement("div");
+    name.className = "name"; name.textContent = f.name; name.title = f.name;
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    sub.textContent = `${fmtSize(f.size)}, from ${f.device || "a device"}, ${fmtWhen(f.created)}`;
+    meta.append(name, sub);
+
+    const actions = document.createElement("div");
+    actions.className = "file-actions";
+    const dl = document.createElement("button");
+    dl.className = "icon-btn"; dl.innerHTML = ICONS.down;
+    dl.setAttribute("aria-label", "Download " + f.name);
+    dl.onclick = () => download(f);
+    const del = document.createElement("button");
+    del.className = "icon-btn danger"; del.innerHTML = ICONS.trash;
+    del.setAttribute("aria-label", "Delete " + f.name);
+    del.onclick = () => removeFile(f);
+    actions.append(dl, del);
+
+    li.append(tile, meta, actions);
+    list.append(li);
+  }
+}
+
+function download(f){
+  const a = document.createElement("a");
+  a.href = `/api/files/${f.id}/download`;
+  a.download = f.name.split("/").pop();
+  document.body.append(a); a.click(); a.remove();
+}
+
+async function removeFile(f){
+  if (!confirm(`Delete "${f.name}" from all your devices?`)) return;
+  try { await api(`/api/files/${f.id}`, { method: "DELETE" }); }
+  catch (err) {
+    if (err.status === 401) { setUser(null); return; }
+    alert(err.message);
+  }
+}
+
+/* ---------------- Uploads ---------------- */
+const pending = [];
+const running = new Set();
+const activeCount = () => pending.length + running.size;
+const queuedBytes = () => [...pending, ...running].reduce((a, j) => a + j.file.size, 0);
+
+function enqueue(entries){
+  if (!user || !entries.length) return;
+  const incoming = entries.reduce((a, e) => a + e.file.size, 0);
+  if (free >= 0) {
+    const room = free - SPARE - queuedBytes();
+    if (incoming > room) {
+      notice(`Not enough space on the Relay computer: these need ${fmtSize(incoming)} but ${fmtSize(Math.max(0, room))} is free.`);
+      return;
+    }
+  }
+  notice("");
+  for (const { file, name } of entries) {
+    const el = document.createElement("div");
+    el.className = "q";
+    el.innerHTML = `<div class="q-top"><span class="q-name"></span><span class="q-stat">Waiting</span></div><div class="bar"><i></i></div>`;
+    el.querySelector(".q-name").textContent = name;
+    const cancel = document.createElement("button");
+    cancel.className = "link"; cancel.type = "button"; cancel.textContent = "Cancel";
+    cancel.style.marginTop = "6px";
+    el.append(cancel);
+    $("queue").append(el);
+    const job = { file, name, el, cancel, xhr: null };
+    cancel.onclick = () => {
+      if (job.xhr) job.xhr.abort();
+      else { pending.splice(pending.indexOf(job), 1); el.remove(); }
+    };
+    pending.push(job);
+  }
+  pump();
+}
+
+function pump(){
+  while (running.size < MAX_PARALLEL && pending.length) {
+    const job = pending.shift();
+    running.add(job);
+    upload(job).then(() => { running.delete(job); pump(); });
+  }
+}
+
+function cancelAll(){
+  pending.splice(0).forEach(j => j.el.remove());
+  running.forEach(j => j.xhr && j.xhr.abort());
+}
+
+function upload(job){
+  return new Promise((resolve) => {
+    const { file, name, el } = job;
+    const stat = el.querySelector(".q-stat");
+    const bar = el.querySelector(".bar i");
+    const fail = (msg) => {
+      el.classList.add("failed");
+      stat.textContent = msg;
+      job.cancel.textContent = "Dismiss";
+      job.cancel.onclick = () => el.remove();
+    };
+
+    const xhr = new XMLHttpRequest();
+    job.xhr = xhr;
+    xhr.open("POST", "/api/upload");
+    xhr.setRequestHeader("X-File-Name", encodeURIComponent(name));
+    xhr.setRequestHeader("X-File-Type", file.type || "");
+    xhr.setRequestHeader("X-Device", deviceLabel());
+    xhr.upload.onprogress = (e) => {
+      const total = e.total || file.size;
+      bar.style.width = (total ? (e.loaded / total) * 100 : 100) + "%";
+      stat.textContent = e.loaded >= total ? "Finishing…" : `${fmtSize(e.loaded)} of ${fmtSize(total)}`;
+    };
+    xhr.onload = () => {
+      if (xhr.status < 300) {
+        bar.style.width = "100%";
+        stat.textContent = "Uploaded";
+        job.cancel.remove();
+        setTimeout(() => el.remove(), 1500);
+      } else {
+        let msg = "Upload failed";
+        try { msg = JSON.parse(xhr.responseText).error || msg; } catch {}
+        if (xhr.status === 401) setUser(null);
+        fail(msg);
+      }
+      resolve();
+    };
+    xhr.onerror = () => { fail("Connection lost. Check the Relay window is still open."); resolve(); };
+    xhr.onabort = () => { el.remove(); resolve(); };
+    xhr.send(file);
+  });
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (activeCount()) { e.preventDefault(); e.returnValue = ""; }
+});
+
+/* ---------------- Pickers ---------------- */
+$("pickFiles").onclick = () => $("fileInput").click();
+$("pickFolder").onclick = () => $("folderInput").click();
+$("fileInput").onchange = (e) => {
+  enqueue([...e.target.files].map(f => ({ file: f, name: f.name })));
+  e.target.value = "";
+};
+$("folderInput").onchange = (e) => {
+  enqueue([...e.target.files].map(f => ({ file: f, name: f.webkitRelativePath || f.name })));
+  e.target.value = "";
+};
+
+/* ---------------- Drag and drop anywhere ---------------- */
+let depth = 0;
+const hasFiles = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes("Files");
+
+window.addEventListener("dragenter", (e) => {
+  if (!hasFiles(e) || !user) return;
+  e.preventDefault();
+  depth++;
+  const n = (e.dataTransfer.items && e.dataTransfer.items.length) || 0;
+  $("sheetSub").textContent = n > 1 ? `${n} items` : "Files and folders both work.";
+  $("sheet").hidden = false;
+  $("dropzone").classList.add("over");
+});
+window.addEventListener("dragover", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = user ? "copy" : "none";
+});
+window.addEventListener("dragleave", (e) => {
+  if (!hasFiles(e)) return;
+  depth = Math.max(0, depth - 1);
+  if (!depth) { $("sheet").hidden = true; $("dropzone").classList.remove("over"); }
+});
+window.addEventListener("drop", async (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  depth = 0;
+  $("sheet").hidden = true;
+  $("dropzone").classList.remove("over");
+  if (!user) return;
+  enqueue(await collectDropped(e.dataTransfer));
+});
+
+// Walks dropped folders so everything inside uploads too (folder path kept in the name).
+async function collectDropped(dt){
+  const entries = [...(dt.items || [])]
+    .filter(i => i.kind === "file")
+    .map(i => i.webkitGetAsEntry && i.webkitGetAsEntry())
+    .filter(Boolean);
+  if (!entries.length) return [...dt.files].map(f => ({ file: f, name: f.name }));
+  const out = [];
+  async function walk(entry, prefix){
+    if (entry.isFile) {
+      const f = await new Promise((res, rej) => entry.file(res, rej));
+      out.push({ file: f, name: prefix + f.name });
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {
+        batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+        for (const child of batch) await walk(child, prefix + entry.name + "/");
+      } while (batch.length);
+    }
+  }
+  for (const entry of entries) await walk(entry, "");
+  return out;
+}
+
+/* ---------------- Start ---------------- */
+api("/api/me").then(d => setUser(d.email)).catch(() => setUser(null));
+})();
+</script>
+</body>
+</html>

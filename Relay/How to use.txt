@@ -1,0 +1,23 @@
+RELAY - send files between your devices over your own Wi-Fi
+
+FIRST TIME
+1. Double-click build.bat. It creates Relay.exe in this folder.
+2. Double-click Relay.exe. A black window opens and your browser shows Relay.
+3. If Windows asks whether to allow Relay on networks, tick "Private networks"
+   and click Allow. Without this, your other devices can't connect.
+4. Create an account in the browser.
+
+EVERY TIME
+- Start Relay.exe on this PC and leave its window open.
+- On your phone or other computers (same Wi-Fi), open the address shown in the
+  Relay window, e.g. http://192.168.1.20:8000, and sign in.
+- Drag files in, or use Choose files. They appear on every signed-in device.
+
+GOOD TO KNOW
+- Uploaded files are stored in the RelayData folder next to Relay.exe.
+  To move Relay to another PC, copy this whole folder.
+- Forgot a password? Type reset in the Relay window.
+- Type users in the Relay window to see all accounts.
+- If phones can't connect: check they're on the same Wi-Fi, and that this PC's
+  Wi-Fi is set to "Private" in Windows network settings.
+- Traffic isn't encrypted, so only use Relay on networks you trust, like home Wi-Fi.
